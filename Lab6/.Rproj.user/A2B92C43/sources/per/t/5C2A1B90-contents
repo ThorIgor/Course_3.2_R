@@ -1,0 +1,646 @@
+song_data <- read.csv("song_data.csv")
+song_data <- song_data[!duplicated(song_data$song_name),]
+
+song_data$song_name = NULL
+
+#-----------R^2------R_Adj----------------------------------
+
+
+# РљРѕРЅС‚СЂРїСЂРёРєР»Р°Рґ 1
+# РџСЂРѕСЃС‚Р° Р»С–РЅС–Р№РЅР° РјРѕРґРµР»СЊ
+
+# РЎС‚РІРѕСЂРµРЅС– РґР°РЅС–, СЏРєС–:
+# 1) РЅРµ С” Р»С–РЅС–Р№РЅРѕСЋ РјРѕРґРµР»Р»СЋ
+# 2) РїРѕРјРёР»РєРё РіРµС‚РµСЂРѕСЃРєРµРґР°СЃС‚РёС‡РЅС–
+x <- seq(0.15, 1, l = 100)
+set.seed(123456)
+eps <- rnorm(n = 100, sd = 0.25 * x^2)
+y <- 1 - 2 * x * (1 + 0.25 * sin(4 * pi * x)) + eps
+
+# Р§СѓРґРѕРІРёР№ R^2!?
+reg <- lm(y ~ x)
+summary(reg)
+## 
+## Call:
+## lm(formula = y ~ x)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.53525 -0.18020  0.02811  0.16882  0.46896 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  0.87190    0.05860   14.88   <2e-16 ***
+## x           -1.69268    0.09359  -18.09   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.232 on 98 degrees of freedom
+## Multiple R-squared:  0.7695, Adjusted R-squared:  0.7671 
+## F-statistic: 327.1 on 1 and 98 DF,  p-value: < 2.2e-16
+
+# scatterplot - С†Рµ С€РІРёРґРєР° Р°Р»СЊС‚РµСЂРЅР°С‚РёРІР°
+ plot(x, y)
+ abline(coef = reg$coef, col = 3)
+
+# But prediction is obviously problematic
+car::scatterplot(y ~ x, col = 1, regLine = list(col = 2), smooth = FALSE)
+
+#========================================================================
+
+# РљРѕРЅС‚СЂРїСЂРёРєР»Р°Рґ 2
+# РњРЅРѕР¶РёРЅРЅР° Р»С–РЅС–Р№РЅР° РјРѕРґРµР»СЊ
+
+# РЎС‚РІРѕСЂРµРЅРЅСЏ РґР°РЅРёС…, СЏРєС–:
+# 1) РЅРµ СЃР»С–РґСѓС” Р»С–РЅС–Р№РЅС–Р№ РјРѕРґРµР»С–
+# 2) РїРѕС…РёР±РєР° РіРµС‚РµСЂРѕСЃРєРµРґР°СЃС‚РёС‡РЅР°
+x1 <- seq(0.15, 1, l = 100)
+set.seed(123456)
+x2 <- runif(100, -3, 3)
+eps <- rnorm(n = 100, sd = 0.25 * x1^2)
+y <- 1 - 3 * x1 * (1 + 0.25 * sin(4 * pi * x1)) + 0.25 * cos(x2) + eps
+
+# РҐРѕСЂРѕС€РёР№ R^2!?
+reg <- lm(y ~ x1 + x2)
+summary(reg)
+## 
+## Call:
+## lm(formula = y ~ x1 + x2)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.78737 -0.20946  0.01031  0.19652  1.05351 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  0.788812   0.096418   8.181  1.1e-12 ***
+## x1          -2.540073   0.154876 -16.401  < 2e-16 ***
+## x2           0.002283   0.020954   0.109    0.913    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.3754 on 97 degrees of freedom
+## Multiple R-squared:  0.744,  Adjusted R-squared:  0.7388 
+## F-statistic:   141 on 2 and 97 DF,  p-value: < 2.2e-16
+
+# РђР»Рµ РїРµСЂРµРґР±Р°С‡РµРЅРЅСЏ, РѕС‡РµРІРёРґРЅРѕ, РїСЂРѕР±Р»РµРјР°С‚РёС‡РЅРµ
+car::scatter3d(y ~ x1 + x2, fit = "linear")
+rgl::rglwidget()
+
+#================================================================
+
+# РЎС‚РІРѕСЂРµРЅРЅСЏ РґР°РЅРёС…
+p <- 198
+n <- 200
+set.seed(3456732)
+beta <- c(0.5, -0.5, rep(0, p - 2))
+X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+Y <- drop(X %*% beta + rnorm(n, sd = 3))
+data <- data.frame(y = Y, x = X)
+
+# Р РµРіСЂРµСЃС–СЏ С‰РѕРґРѕ РґРІРѕС… Р·РЅР°С‡СѓС‰РёС… РїСЂРµРґРёРєС‚РѕСЂС–РІ
+summary(lm(y ~ x.1 + x.2, data = data))
+
+# Р”РѕРґР°РІР°РЅРЅСЏ 20 Р·РјС–РЅРЅРёС… "СЃРјС–С‚С‚СЏ"
+# R^2 Р·Р±С–Р»СЊС€СѓС”С‚СЊСЃСЏ, Р° Adjusted R^2 Р·РјРµРЅС€СѓС”С‚СЊСЃСЏ
+
+#===============================================================
+
+# RStudio 3
+# Р’С–Рґ'С”РјРЅРёР№ Adjusted R^2
+# РўСЂРё РЅРµР·Р°Р»РµР¶РЅС– Р·РјС–РЅРЅС–
+set.seed(234599)
+x1 <- rnorm(100)
+x2 <- rnorm(100)
+y <- 1 + rnorm(100)
+
+# Р’С–Рґ'С”РјРЅРёР№ Adjusted R^2
+summary(lm(y ~ x1 + x2))
+## 
+## Call:
+## lm(formula = y ~ x1 + x2)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -3.5081 -0.5021 -0.0191  0.5286  2.4750 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  0.97024    0.10399   9.330 3.75e-15 ***
+## x1           0.09003    0.10300   0.874    0.384    
+## x2          -0.05253    0.11090  -0.474    0.637    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.034 on 97 degrees of freedom
+## Multiple R-squared:  0.009797,   Adjusted R-squared:  -0.01062 
+## F-statistic: 0.4799 on 2 and 97 DF,  p-value: 0.6203
+
+#=================================================================
+
+# RStudio 3
+# РњРѕРґРµР»СЊ Р±РµР· РїРµСЂРµС‚РёРЅСѓ
+# РњРѕРґРµР»СЊ Р· РїРµСЂРµС‚РёРЅРѕРј РІС–СЃС– Y (Р· РІС–Р»СЊРЅРёРј РєРѕРµС„С–С†С–С”РЅС‚РѕРј)
+mod1 <- lm(Sepal.Length ~ Petal.Width, data = iris)
+mod1
+## 
+## Call:
+## lm(formula = Sepal.Length ~ Petal.Width, data = iris)
+## 
+## Coefficients:
+## (Intercept)  Petal.Width  
+##      4.7776       0.8886
+
+# РњРѕР¶РµР»СЊ Р±РµР· РїРµСЂРµС‚РёРЅСѓ
+mod0 <- lm(Sepal.Length ~ 0 + Petal.Width, data = iris)
+mod0
+## 
+## Call:
+## lm(formula = Sepal.Length ~ 0 + Petal.Width, data = iris)
+## 
+## Coefficients:
+## Petal.Width  
+##       3.731
+
+# Р С–Р·РЅС– СЃРїРѕСЃС–Р±Рё РѕС‚СЂРёРјР°РЅРЅСЏ РѕС†С–РЅРѕРє
+X1 <- cbind(1, iris$Petal.Width)
+X0 <- cbind(iris$Petal.Width) # Р‘РµР· РєРѕР»РѕРЅРєРё РѕРґРёРЅРёС†СЊ!
+Y <- iris$Sepal.Length
+betaHat1 <- solve(crossprod(X1)) %*% t(X1) %*% Y
+betaHat0 <- solve(crossprod(X0)) %*% t(X0) %*% Y
+betaHat1
+##           [,1]
+## [1,] 4.7776294
+## [2,] 0.8885803
+betaHat0
+##          [,1]
+## [1,] 3.731485
+
+# РџС–РґСЃСѓРјРєРё: R^2 РІРёС‰РёР№ РґР»СЏ РјРѕРґРµР»С– Р±РµР· РїРµСЂРµС‚РёРЅСѓ !?
+summary(mod1)
+## 
+## Call:
+## lm(formula = Sepal.Length ~ Petal.Width, data = iris)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.38822 -0.29358 -0.04393  0.26429  1.34521 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  4.77763    0.07293   65.51   <2e-16 ***
+## Petal.Width  0.88858    0.05137   17.30   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.478 on 148 degrees of freedom
+## Multiple R-squared:  0.669,  Adjusted R-squared:  0.6668 
+## F-statistic: 299.2 on 1 and 148 DF,  p-value: < 2.2e-16
+summary(mod0)
+## 
+## Call:
+## lm(formula = Sepal.Length ~ 0 + Petal.Width, data = iris)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -3.1556 -0.3917  1.0625  3.8537  5.0537 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## Petal.Width    3.732      0.150   24.87   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 2.609 on 149 degrees of freedom
+## Multiple R-squared:  0.8058, Adjusted R-squared:  0.8045 
+## F-statistic: 618.4 on 1 and 149 DF,  p-value: < 2.2e-16
+
+# Р—Р°С‡РµРєР°Р№С‚Рµ С…РІРёР»РёРЅРєСѓ ... РґР°РІР°Р№С‚Рµ РїРѕРґРёРІРёРјРѕСЃСЊ РЅР° СЃРїСЂР°РІР¶РЅСЋ РїС–РґРіРѕРЅРєСѓ
+plot(Sepal.Length ~ Petal.Width, data = iris)
+abline(mod1, col = 2) # РћС‡РµРІРёРґРЅРѕ, РЅР°Р±Р°РіР°С‚Рѕ РєСЂР°С‰Рµ
+abline(mod0, col = 3)
+
+#---------------------------------------------------------------
+
+# РћР±С‡РёСЃР»РёС‚Рё R^2 РІСЂСѓС‡РЅСѓ РґР»СЏ mod1
+SSE1 <- sum((mod1$residuals - mean(mod1$residuals))^2)
+SST1 <- sum((mod1$model$Sepal.Length - mean(mod1$model$Sepal.Length))^2)
+1 - SSE1 / SST1
+## [1] 0.6690277
+
+# РћР±С‡РёСЃР»РёС‚Рё R^2 РІСЂСѓС‡РЅСѓ РґР»СЏ mod0
+SSE0 <- sum((mod0$residuals - mean(mod0$residuals))^2)
+SST0 <- sum((mod0$model$Sepal.Length - mean(mod0$model$Sepal.Length))^2)
+1 - SSE0 / SST0
+## [1] -6.179158
+# Р’С–РЅ РІС–Рґ'С”РјРЅРёР№!
+
+# РќР°РіР°РґР°С”РјРѕ, С‰Рѕ СЃРµСЂРµРґРЅС” Р·РЅР°С‡РµРЅРЅСЏ Р·Р°Р»РёС€РєС–РІ РЅРµ РґРѕСЂС–РІРЅСЋС” РЅСѓР»СЋ!
+mean(mod0$residuals)
+## [1] 1.368038
+
+# РЇРєРёР№ РїС–РґСЃСѓРјРѕРє СЃРїСЂР°РІРґС– РїРѕРІРµСЂС‚Р°С”С‚СЊСЃСЏ, СЏРєС‰Рѕ РЅРµРјР°С” РїРµСЂРµС‚РёРЅСѓ
+n <- nrow(iris)
+p <- 1
+R0 <- 1 - sum(mod0$residuals^2) / sum(mod0$model$Sepal.Length^2)
+R0Adj <- 1 - sum(mod0$residuals^2) / sum(mod0$model$Sepal.Length^2) *
+  (n - 1) / (n - p - 1)
+R0
+## [1] 0.8058497
+R0Adj
+## [1] 0.8045379
+
+
+
+
+# РїСѓРЅРєС‚ D
+# Р©Рѕ, СЏРєР±Рё РјРё С†РµРЅС‚СЂРёСЂСѓРІР°Р»Рё РґР°РЅС– СЂР°РЅС–С€Рµ?
+songCen <- data.frame(scale(song_data, center = TRUE, scale = FALSE))
+modCen1 <- lm(song_popularity ~ danceability, data = songCen)
+modCen0 <- lm(song_popularity ~ 0 + danceability, data = songCen)
+
+#РїРµСЂРµРІС–СЂСЏС”РјРѕ С‡Рё РѕРґРЅР°РєРѕРІРёР№ R^2 СЏРєС‰Рѕ РѕРґРЅР°РєРѕРІРёР№ С‚Рѕ РґР»СЏ С†РµРЅС‚СЂРѕРІР°РЅРѕС— РјРѕРґРµР»С– РјРѕР¶РЅР° РѕРїРёСЂР°С‚РёСЃСЊ РЅР° R^2 РїРѕС‚С–Рј РґРёРІРёРјРѕСЃСЊ С‡Рё СЃРїС–РІРїР°РґР°С” R^2 РґР»СЏ С†РµРЅС‚СЂРѕРІР°РЅРѕС— С‚Р° РЅРµ С†РµРЅС‚СЂРѕРІР°РЅРѕС—, СЏРєС‰Рѕ СЃРїС–РІРїР°РґР°С”, РјРѕР¶РЅР° РІРёРєРѕСЂРёСЃС‚РѕРІСѓРІР°С‚Рё РѕР±РёРґРІС– РјРѕРґРµР»С–
+# РќРµРјР°С” РїСЂРѕР±Р»РµРј, "РїСЂР°РІРёР»СЊРЅРѕ" R^2
+summary(modCen1)
+## 
+## Call:
+## lm(formula = Sepal.Length ~ Petal.Width, data = irisCen)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.38822 -0.29358 -0.04393  0.26429  1.34521 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -1.421e-15  3.903e-02     0.0        1    
+## Petal.Width  8.886e-01  5.137e-02    17.3   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.478 on 148 degrees of freedom
+## Multiple R-squared:  0.669,  Adjusted R-squared:  0.6668 
+## F-statistic: 299.2 on 1 and 148 DF,  p-value: < 2.2e-16
+summary(modCen0)
+## 
+## Call:
+## lm(formula = Sepal.Length ~ 0 + Petal.Width, data = irisCen)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.38822 -0.29358 -0.04393  0.26429  1.34521 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## Petal.Width   0.8886     0.0512   17.36   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.4764 on 149 degrees of freedom
+## Multiple R-squared:  0.669,  Adjusted R-squared:  0.6668 
+## F-statistic: 301.2 on 1 and 149 DF,  p-value: < 2.2e-16
+
+# РђР»Рµ Р»РёС€Рµ РІ С‚РѕРјСѓ РІРёРїР°РґРєСѓ, СЏРєС‰Рѕ РјРё СЃС†РµРЅС‚СЂСѓС”РјРѕ РїСЂРѕРіРЅРѕР· С– РІС–РґРїРѕРІС–РґСЊ ...
+summary(lm(iris$Sepal.Length ~ 0 + irisCen$Petal.Width))
+## 
+## Call:
+## lm(formula = iris$Sepal.Length ~ 0 + irisCen$Petal.Width)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+##  4.455  5.550  5.799  6.108  7.189 
+## 
+## Coefficients:
+##                     Estimate Std. Error t value Pr(>|t|)
+## irisCen$Petal.Width   0.8886     0.6322   1.406    0.162
+## 
+## Residual standard error: 5.882 on 149 degrees of freedom
+## Multiple R-squared:  0.01308,    Adjusted R-squared:  0.006461 
+## F-statistic: 1.975 on 1 and 149 DF,  p-value: 0.1619
+
+#=========================================================
+
+
+# RStudio 4
+# РџСЂРѕ РІРёРЅРѕ
+
+wine <- read.table(file = "wine.csv", header = TRUE, sep = ",")
+row.names(wine) <- wine$Year
+wine$Year <- NULL
+# РџРЈРќРљРў Рђ Р‘
+# РџС–РґС…РѕРґСЏС‚СЊ РјРѕРґРµР»С–
+mod1 <- lm(song_popularity ~ ., data = song_data)
+summary(mod1)
+
+
+mod2 <- lm(song_popularity ~ . - key, data = song_data)
+summary(mod2)
+
+mod3 <- lm(song_popularity ~ danceability + instrumentalness , data = song_data)
+summary(mod3)
+
+modWine1 <- lm(Price ~ ., data = wine)
+modWine2 <- lm(Price ~ . - FrancePop, data = wine)
+modWine3 <- lm(Price ~ Age + WinterRain, data = wine)
+
+
+
+#РџРЈРќРљРў РЎ
+# РњРѕР¶РµР»СЊ Р±РµР· РїРµСЂРµС‚РёРЅСѓ
+mod0 <- lm(song_popularity ~ 0 + danceability, data = song_data)
+modOne <- lm(song_popularity ~  danceability, data = song_data)
+
+summary(mod0)
+
+summary(modOne)
+
+
+plot(song_popularity ~ ., data = song_data)
+abline(mod0, col = 2) # РћС‡РµРІРёРґРЅРѕ, РЅР°Р±Р°РіР°С‚Рѕ РєСЂР°С‰Рµ
+abline(modOne, col = 3)
+
+
+
+
+# Summaries
+
+## 
+## Call:
+## lm(formula = Price ~ ., data = wine)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.46541 -0.24133  0.00413  0.18974  0.52495 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -2.343e+00  7.697e+00  -0.304  0.76384    
+## WinterRain   1.153e-03  4.991e-04   2.311  0.03109 *  
+## AGST         6.144e-01  9.799e-02   6.270 3.22e-06 ***
+## HarvestRain -3.837e-03  8.366e-04  -4.587  0.00016 ***
+## Age          1.377e-02  5.821e-02   0.237  0.81531    
+## FrancePop   -2.213e-05  1.268e-04  -0.175  0.86313    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.293 on 21 degrees of freedom
+## Multiple R-squared:  0.8278, Adjusted R-squared:  0.7868 
+## F-statistic: 20.19 on 5 and 21 DF,  p-value: 2.232e-07
+summary(modWine2)
+## 
+## Call:
+## lm(formula = Price ~ . - FrancePop, data = wine)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.46024 -0.23862  0.01347  0.18601  0.53443 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -3.6515703  1.6880876  -2.163  0.04167 *  
+## WinterRain   0.0011667  0.0004820   2.420  0.02421 *  
+## AGST         0.6163916  0.0951747   6.476 1.63e-06 ***
+## HarvestRain -0.0038606  0.0008075  -4.781 8.97e-05 ***
+## Age          0.0238480  0.0071667   3.328  0.00305 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.2865 on 22 degrees of freedom
+## Multiple R-squared:  0.8275, Adjusted R-squared:  0.7962 
+## F-statistic: 26.39 on 4 and 22 DF,  p-value: 4.057e-08
+summary(modWine3)
+## 
+## Call:
+## lm(formula = Price ~ Age + WinterRain, data = wine)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.88964 -0.51421 -0.00066  0.43103  1.06897 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 5.9830427  0.5993667   9.982 5.09e-10 ***
+## Age         0.0360559  0.0137377   2.625   0.0149 *  
+## WinterRain  0.0007813  0.0008780   0.890   0.3824    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.5769 on 24 degrees of freedom
+## Multiple R-squared:  0.2371, Adjusted R-squared:  0.1736 
+## F-statistic:  3.73 on 2 and 24 DF,  p-value: 0.03884
+
+
+#====================РљР°С‚РµРіРѕСЂС–Р°Р»СЊРЅС– Р·РјС–РЅРЅС–=====================================
+
+# iris dataset -- factors in the last column
+summary(iris)
+##   Sepal.Length    Sepal.Width     Petal.Length    Petal.Width          Species  
+##  Min.   :4.300   Min.   :2.000   Min.   :1.000   Min.   :0.100   setosa    :50  
+##  1st Qu.:5.100   1st Qu.:2.800   1st Qu.:1.600   1st Qu.:0.300   versicolor:50  
+##  Median :5.800   Median :3.000   Median :4.350   Median :1.300   virginica :50  
+##  Mean   :5.843   Mean   :3.057   Mean   :3.758   Mean   :1.199                  
+##  3rd Qu.:6.400   3rd Qu.:3.300   3rd Qu.:5.100   3rd Qu.:1.800                  
+##  Max.   :7.900   Max.   :4.400   Max.   :6.900   Max.   :2.500
+
+# Summary of a linear model
+mod1 <- lm(Sepal.Length ~ ., data = iris)
+summary(mod1)
+## 
+## Call:
+## lm(formula = Sepal.Length ~ ., data = iris)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.79424 -0.21874  0.00899  0.20255  0.73103 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)        2.17127    0.27979   7.760 1.43e-12 ***
+## Sepal.Width        0.49589    0.08607   5.761 4.87e-08 ***
+## Petal.Length       0.82924    0.06853  12.101  < 2e-16 ***
+## Petal.Width       -0.31516    0.15120  -2.084  0.03889 *  
+## Speciesversicolor -0.72356    0.24017  -3.013  0.00306 ** 
+## Speciesvirginica  -1.02350    0.33373  -3.067  0.00258 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.3068 on 144 degrees of freedom
+## Multiple R-squared:  0.8673, Adjusted R-squared:  0.8627 
+## F-statistic: 188.3 on 5 and 144 DF,  p-value: < 2.2e-16
+
+# Speciesversicolor (D1) coefficient: -0.72356. The average increment of
+# Sepal.Length when the species is versicolor instead of setosa (reference)
+# Speciesvirginica (D2) coefficient: -1.02350. The average increment of
+# Sepal.Length when the species is virginica instead of setosa (reference)
+# Both dummy variables are significant
+
+# How to set a different level as reference (versicolor)
+iris$Species <- relevel(iris$Species, ref = "versicolor")
+
+# Same estimates, except for the dummy coefficients
+mod2 <- lm(Sepal.Length ~ ., data = iris)
+summary(mod2)
+## 
+## Call:
+## lm(formula = Sepal.Length ~ ., data = iris)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.79424 -0.21874  0.00899  0.20255  0.73103 
+## 
+## Coefficients:
+##                  Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)       1.44770    0.28149   5.143 8.68e-07 ***
+## Sepal.Width       0.49589    0.08607   5.761 4.87e-08 ***
+## Petal.Length      0.82924    0.06853  12.101  < 2e-16 ***
+## Petal.Width      -0.31516    0.15120  -2.084  0.03889 *  
+## Speciessetosa     0.72356    0.24017   3.013  0.00306 ** 
+## Speciesvirginica -0.29994    0.11898  -2.521  0.01280 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.3068 on 144 degrees of freedom
+## Multiple R-squared:  0.8673, Adjusted R-squared:  0.8627 
+## F-statistic: 188.3 on 5 and 144 DF,  p-value: < 2.2e-16
+
+# Speciessetosa (D1) coefficient: 0.72356. The average increment of
+# Sepal.Length when the species is setosa instead of versicolor (reference)
+# Speciesvirginica (D2) coefficient: -0.29994. The average increment of
+# Sepal.Length when the species is virginica instead of versicolor (reference)
+# Both dummy variables are significant
+
+# Coefficients of the model
+confint(mod2)
+##                       2.5 %      97.5 %
+## (Intercept)       0.8913266  2.00408209
+## Sepal.Width       0.3257653  0.66601260
+## Petal.Length      0.6937939  0.96469395
+## Petal.Width      -0.6140049 -0.01630542
+## Speciessetosa     0.2488500  1.19827390
+## Speciesvirginica -0.5351144 -0.06475727
+# The coefficients of Speciessetosa and Speciesvirginica are
+# significantly positive and negative, respectively
+
+# Show the dummy variables employed for encoding a factor
+contrasts(iris$Species)
+##            setosa virginica
+## versicolor      0         0
+## setosa          1         0
+## virginica       0         1
+iris$Species <- relevel(iris$Species, ref = "setosa")
+contrasts(iris$Species)
+##            versicolor virginica
+## setosa              0         0
+## versicolor          1         0
+## virginica           0         1
+
+
+
+
+#==================Boston ===================
+
+
+# Load the Boston dataset
+data(Boston, package = "MASS")
+
+# Structure of the data
+str(Boston)
+## 'data.frame':    506 obs. of  14 variables:
+##  $ crim   : num  0.00632 0.02731 0.02729 0.03237 0.06905 ...
+##  $ zn     : num  18 0 0 0 0 0 12.5 12.5 12.5 12.5 ...
+##  $ indus  : num  2.31 7.07 7.07 2.18 2.18 2.18 7.87 7.87 7.87 7.87 ...
+##  $ chas   : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ nox    : num  0.538 0.469 0.469 0.458 0.458 0.458 0.524 0.524 0.524 0.524 ...
+##  $ rm     : num  6.58 6.42 7.18 7 7.15 ...
+##  $ age    : num  65.2 78.9 61.1 45.8 54.2 58.7 66.6 96.1 100 85.9 ...
+##  $ dis    : num  4.09 4.97 4.97 6.06 6.06 ...
+##  $ rad    : int  1 2 2 3 3 3 5 5 5 5 ...
+##  $ tax    : num  296 242 242 222 222 222 311 311 311 311 ...
+##  $ ptratio: num  15.3 17.8 17.8 18.7 18.7 18.7 15.2 15.2 15.2 15.2 ...
+##  $ black  : num  397 397 393 395 397 ...
+##  $ lstat  : num  4.98 9.14 4.03 2.94 5.33 ...
+##  $ medv   : num  24 21.6 34.7 33.4 36.2 28.7 22.9 27.1 16.5 18.9 ...
+# chas is a dummy variable measuring if the suburb is close to the river (1)
+# or not (0). In this case it is not codified as a factor but as a 0 or 1
+# (so it is already dummyfied)
+
+# Summary of a linear model
+mod <- lm(medv ~ chas + crim, data = Boston)
+summary(mod)
+## 
+## Call:
+## lm(formula = medv ~ chas + crim, data = Boston)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -16.540  -5.421  -1.878   2.575  30.134 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 23.61403    0.41862  56.409  < 2e-16 ***
+## chas         5.57772    1.46926   3.796 0.000165 ***
+## crim        -0.40598    0.04339  -9.358  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 8.373 on 503 degrees of freedom
+## Multiple R-squared:  0.1744, Adjusted R-squared:  0.1712 
+## F-statistic: 53.14 on 2 and 503 DF,  p-value: < 2.2e-16
+# The coefficient associated to chas is 5.57772. That means that if the suburb
+# is close to the river, the mean of medv increases in 5.57772 units for
+# the same house and neighborhood conditions
+# chas is significant (the presence of the river adds a valuable information
+# for explaining medv)
+
+# Summary of the best model in terms of BIC
+mod <- lm(medv ~ ., data = Boston)
+
+modBIC <- MASS::stepAIC(mod, k = log(nrow(Boston)))
+
+summary(modBIC)
+## 
+## Call:
+## lm(formula = medv ~ crim + zn + chas + nox + rm + dis + rad + 
+##     tax + ptratio + black + lstat, data = Boston)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -15.5984  -2.7386  -0.5046   1.7273  26.2373 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  36.341145   5.067492   7.171 2.73e-12 ***
+## crim         -0.108413   0.032779  -3.307 0.001010 ** 
+## zn            0.045845   0.013523   3.390 0.000754 ***
+## chas          2.718716   0.854240   3.183 0.001551 ** 
+## nox         -17.376023   3.535243  -4.915 1.21e-06 ***
+## rm            3.801579   0.406316   9.356  < 2e-16 ***
+## dis          -1.492711   0.185731  -8.037 6.84e-15 ***
+## rad           0.299608   0.063402   4.726 3.00e-06 ***
+## tax          -0.011778   0.003372  -3.493 0.000521 ***
+## ptratio      -0.946525   0.129066  -7.334 9.24e-13 ***
+## black         0.009291   0.002674   3.475 0.000557 ***
+## lstat        -0.522553   0.047424 -11.019  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 4.736 on 494 degrees of freedom
+## Multiple R-squared:  0.7406, Adjusted R-squared:  0.7348 
+## F-statistic: 128.2 on 11 and 494 DF,  p-value: < 2.2e-16
+# The coefficient associated to chas is 2.71871. If the suburb is close to
+# the river, the mean of medv increases in 2.71871 units
+# chas is significant as well in the presence of more predictors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

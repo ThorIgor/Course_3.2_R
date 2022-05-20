@@ -1,0 +1,31 @@
+DF <- read.csv("universities_cor.csv")
+DF <- subset(DF, select=-c(X))
+DF$gender.ratio <- as.factor(DF$gender.ratio)
+
+data <- subset(DF, select = -c(ranking, title, location, gender.ratio))
+corrplot::corrplot(cor(data), addCoef.col = "grey")
+
+
+data <- subset(DF, select = -c(ranking, title, location))
+
+
+mod1 <- lm(overall.score ~., data=data)
+summary(mod1)
+
+
+plot(mod1, 1)
+plot(mod1, 2)
+plot(mod1, 3)
+
+
+data <- subset(data, select = -c(teaching.score, research.score, citations.score, intl.outlook.score))
+
+
+mod2 <- lm(overall.score ~., data=data)
+summary(mod2)
+
+
+plot(mod2, 1)
+plot(mod2, 2)
+plot(mod2, 3)
+

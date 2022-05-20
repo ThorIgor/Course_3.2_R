@@ -1,0 +1,40 @@
+
+
+DF <- read.csv("universities.csv")
+
+y <- DF$overall.score
+x1 <- DF$teaching.score
+x2 <- DF$perc.intl.students
+x3 <- DF$gender.ratio
+
+m1 <- lm(y ~ x1)
+
+plot(x1, y)
+abline(m1, col = 2)
+
+summ1 <- summary(m1)
+summ1$r.squared
+sum(summ1$residuals^2)
+plot(summ1$residuals)
+mean(summ1$residuals)
+var(summ1$residuals)
+hist(summ1$residuals)
+
+plot(m1, 1)
+plot(m1, 2)
+plot(m1, 3)
+
+m2 <- lm(y ~ x2)
+m3 <- lm(y ~ x3)
+
+
+
+plot(x2, y)
+abline(m2, col = 2)
+
+plot(x3, y)
+abline(m3, col = 2)
+
+summary(m1)
+summary(m2)
+summary(m3)

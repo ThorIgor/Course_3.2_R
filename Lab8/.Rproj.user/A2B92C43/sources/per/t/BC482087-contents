@@ -1,0 +1,23 @@
+
+data <- read.csv("universities_cor.csv")
+
+mod1 <- lm(overall.score ~ teaching.score+research.score, data=data)
+summary(mod1, cor=TRUE)
+
+n <- length(residuals(mod1))
+cor(residuals(mod1)[-1], residuals(mod1)[-n])
+# [1] 0.5301196
+
+x <- model.matrix(mod1)
+Sigma <- diag(n)
+Sigma <- 0.5301196^abs(row(Sigma)-col(Sigma))
+Sigi <- solve(Sigma)
+xtxi <- solve(t(x) %*% Sigi %*% x)
+beta <- xtxi %*% t(x) %*% Sigi %*% data$overall.score
+beta
+
+
+
+
+
+

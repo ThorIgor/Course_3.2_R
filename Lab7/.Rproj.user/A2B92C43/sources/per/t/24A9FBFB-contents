@@ -1,0 +1,85 @@
+data <- read.csv("lab2/canada_cpi.csv")
+X = data$Health.and.personal.care
+Y = data$Fresh.fruit.and.vegetables
+
+
+
+
+# ((((((((((((((((((((((((( 1 )))))))))))))))))))))))))
+# ========== (A) ========== 
+# ========== (B) ========== 
+# ========== (C) ========== 
+# ========== (D) ========== 
+# ========== (E) ========== 
+
+
+
+
+# ((((((((((((((((((((((((( 2 )))))))))))))))))))))))))
+# ========== (A) ========== 
+mod = lm(Fresh.fruit.and.vegetables ~ Health.and.personal.care, data=data)
+plot(data$Health.and.personal.care, data$Fresh.fruit.and.vegetables)
+
+# ========== (B) ========== 
+car::ncvTest(mod)
+# p < 0.05 ==> heteroscedasticity 
+
+# ========== (C) ========== 
+plot(mod, 3) # heteroscedasticity 
+
+# ========== (D) ========== 
+mod1 <- lm(I(log(abs(Y))) ~ X)
+car::ncvTest(mod1)
+# p > 0.05 ==> homoscedasticity 
+mod2 <- lm(I(sqrt(abs(Y))) ~ X)
+car::ncvTest(mod2)
+# p < 0.05 ==> heteroscedasticity 
+
+# ========== (E) ========== 
+delta <- 1 
+m <- -min(Y) + delta
+plot(lm(I(log(Y + m)) ~ X), 3) 
+mod3 <- lm(I(log(Y + m)) ~ X)
+car::ncvTest(mod3)
+# p < 0.05 ==> heteroscedasticity 
+
+# ========== (F) ========== 
+YJ <- car::powerTransform(lm(Y ~ X), family = "yjPower")
+(lambdaYJ <- YJ$lambda)
+YTransf <- car::yjPower(U = Y, lambda = lambdaYJ)
+plot(lm(YTransf ~ X), 3) 
+mod4 <- lm(I(YTransf ~ X))
+car::ncvTest(mod4)
+# p > 0.05 ==> homoscedasticity 
+
+
+
+
+# ((((((((((((((((((((((((( 3 )))))))))))))))))))))))))
+# ========== (A) ========== 
+# all variables are numerical
+
+# ========== (B) ========== 
+pca_data <- princomp(data, fix_sign = TRUE)
+summary(pca_data)
+
+# ========== (C) ========== 
+plot(pca_data, type = "l")
+# this plot shows that comp1 explains most of the variance of the data, 
+# so we can use only 1 component
+
+# ========== (D) ========== 
+barplot(cumsum(pca_data$sdev^2) / sum(pca_data$sdev^2))
+# this plot shows that comp1 explains more than 95% of the variance of the data,
+# so we can use only 1 component
+
+# ========== (E) ========== 
+head(sweep(pca_data$scores %*% t(pca_data$loadings), 2, pca_data$center, "+"))
+
+# ========== (F) ========== 
+pca_data_std <- princomp(x = data, cor = TRUE, fix_sign = TRUE)
+summary(pca_data_std)
+
+# ========== (G) ========== 
+biplot(pca_data, cex = 0.75)
+biplot(pca_data_std, cex = 0.75)

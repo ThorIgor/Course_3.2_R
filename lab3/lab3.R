@@ -1,0 +1,118 @@
+#Тхорук Ігор
+
+DF <- read.csv("universities.csv")
+
+#(A)
+y <- DF$research.score
+x1 <- DF$teaching.score
+x2 <- DF$intl.outlook.score
+x3 <- DF$perc.intl.students
+
+m1 <- lm(y ~ x1)
+
+plot(x1, y)
+abline(m1, col = 2)
+
+summ1 <- summary(m1)
+summ1$r.squared
+sum(summ1$residuals^2)
+plot(summ1$residuals)
+mean(summ1$residuals)
+var(summ1$residuals)
+hist(summ1$residuals)
+
+var(x1)
+var(y)
+hist(x1)
+hist(y)
+
+plot(m1, 1)
+plot(m1, 2)
+plot(m1, 3)
+plot(m1$residuals, type="o")
+
+#Лінійнійна
+#Гомоскатестична
+#Не нормальний розподіл
+#Незалежні похибки
+
+m2 <- lm(y ~ x2)
+
+plot(x2, y)
+abline(m2, col = 2)
+
+summ2 <- summary(m2)
+summ2$r.squared
+sum(summ2$residuals^2)
+plot(summ2$residuals)
+mean(summ2$residuals)
+var(summ2$residuals)
+hist(summ2$residuals)
+
+plot(m2, 1)
+plot(m2, 2)
+plot(m2, 3)
+plot(m2$residuals, type="o")
+
+#Лінійна
+#Гетероскатестична
+#Нормальний розподіл
+#Залежні похибки
+
+m3 <- lm(y ~ x3)
+
+plot(x3, y)
+abline(m3, col = 2)
+
+summ3 <- summary(m1)
+summ3$r.squared
+sum(summ3$residuals^2)
+plot(summ3$residuals)
+mean(summ3$residuals)
+var(summ3$residuals)
+hist(summ3$residuals)
+
+plot(m3, 1)
+plot(m3, 2)
+plot(m3, 3)
+plot(m3$residuals, type="o")
+
+#Лінійна
+#Гетероскатестична
+#Нормальний розподіл
+#Залежні похибки
+
+#(B)
+
+y <- DF$research.score
+x1 <- DF$teaching.score
+x2 <- DF$intl.outlook.score
+x3 <- DF$perc.intl.students
+x4 <- DF$citations.score
+x5 <- DF$industry.income.score
+
+mod1 <- lm(y ~ x1+x2+x3+x4+x5)
+
+summary1 <- summary(mod1)
+summary1
+
+sqrt(sum(mod1$residuals^2)/mod1$df.residual)
+summary1$sigma
+#Вони співпадають і рівні 6.299
+
+mod2 <- lm(y ~ x1+x2+x4+x5)
+
+summary2 <- summary(mod2)
+summary2
+
+#(C) Ступені вільності першої моделі(1519) не сильно відрізняються від другої(1521)
+
+car::compareCoefs(mod1, mod2)
+
+#(D) Різниця між моделями мінімальна
+#У першої моделі трохи більший R^2, трохи менший RSE
+#Але SE у другій моделі для кожної бета покращились особливо біля x2
+#Можна робити висновок що моделі майже ідентичні, але я б відав перевагу другій
+
+
+

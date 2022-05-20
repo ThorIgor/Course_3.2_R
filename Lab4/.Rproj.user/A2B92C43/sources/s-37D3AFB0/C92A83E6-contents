@@ -1,0 +1,488 @@
+library(lubridate)
+library(data.table)
+library(dplyr)
+library(utils)
+library(AER)
+library(stargazer)
+
+
+UR <- read.csv("universities_ranking.csv")
+US <- read.csv("universities_scores.csv")
+
+DF <- cbind(US, UR[c("number.students", "students.staff.ratio", "perc.intl.students", "gender.ratio")])
+
+#Чистим overall.score
+count <- 1
+for(i in DF$overall.score) {
+  DF$overall.score[count] <- as.character(mean(as.numeric(unlist(strsplit(i, "вЂ“")))))
+  count <- count + 1
+}
+DF$overall.score <- as.numeric(DF$overall.score)
+
+
+#Чистим number.students
+DF <- DF %>%
+  mutate(number.students = gsub(",", "", number.students))
+DF$number.students <- as.numeric(DF$number.students)
+
+
+#Чистим perc.intl.students
+DF <- DF %>%
+  mutate(perc.intl.students = gsub("%", "", perc.intl.students))
+DF$perc.intl.students <- as.numeric(DF$perc.intl.students)
+DF <- DF %>%
+  mutate(perc.intl.students=replace(perc.intl.students,is.na(perc.intl.students),median(perc.intl.students,na.rm = TRUE)))
+
+#Чистим gender.ratio
+count <- 1
+for(i in DF$gender.ratio) {
+  if(!is.na(i)) {
+    num <- as.numeric(unlist(strsplit(i, ":")))
+    DF$gender.ratio[count] <- as.character(num[1]/num[2])
+  }
+  count <- count + 1
+}
+DF$gender.ratio <- as.numeric(DF$gender.ratio)
+DF <- DF %>%
+  mutate(gender.ratio=replace(gender.ratio,is.na(gender.ratio),median(gender.ratio,na.rm = TRUE)))
+count <- 1
+for(i in DF$gender.ratio) {
+  if(i == Inf)
+    DF$gender.ratio[count] <- 100
+  count <- count + 1
+}
+
+DF <- read.csv("universities.csv")
+
+row.names(wine) <- wine$Year
+wine$Year <- NULL
+
+#==================F перевірка  =================
+
+mod1 <- lm(teaching.score ~ research.score + citations.score  + industry.income.score + intl.outlook.score + gender.ratio, data = DF)
+summary(mod1)
+
+# гетероскедастичність-надійний F-тест
+linearHypothesis(mod1, c("citations.score=0"))
+#linearHypothesis(model, c("Age=0", "WinterRain=0"), white.adjust = "hc1") #для гетероскедастичності
+linearHypothesis(modWine1, c("research.score=0", "intl.outlook.score=0"))
+
+
+#=============================================
+
+#-----------------------------------------------
+#Індивідуальні ДІ для невідомих βj можна отримати, 
+#застосувавши функцію  з об’єкта lm. 
+#Давайте обчислимо ДІ для коефіцієнтів моделі 
+#modWine1, modWine2 та нової моделі modWine3:
+
+mod1 <- lm(teaching.score ~ research.score + citations.score  + industry.income.score + intl.outlook.score + perc.intl.students, data = DF)
+summary(mod1)
+
+
+# Fit a new model
+mod2 <- lm(teaching.score ~ research.score + industry.income.score + intl.outlook.score, data = DF)
+summary(mod2)
+## 
+## Call:
+## lm(formula = Price ~ Age + WinterRain, data = wine)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.88964 -0.51421 -0.00066  0.43103  1.06897 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 5.9830427  0.5993667   9.982 5.09e-10 ***
+## Age         0.0360559  0.0137377   2.625   0.0149 *  
+## WinterRain  0.0007813  0.0008780   0.890   0.3824    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.5769 on 24 degrees of freedom
+## Multiple R-squared:  0.2371, Adjusted R-squared:  0.1736 
+## F-statistic:  3.73 on 2 and 24 DF,  p-value: 0.03884
+
+
+confint(mod2)
+
+confint(mod2, level = 0.90)
+
+confint(mod2, level = 0.99)
+
+
+# Compare with previous models
+confint(mod1)
+##                     2.5 %        97.5 %
+## (Intercept) -1.834844e+01 13.6632391095
+## WinterRain   1.153872e-04  0.0021910509
+## AGST         4.106337e-01  0.8182146540
+## HarvestRain -5.577203e-03 -0.0020974232
+## Age         -1.072931e-01  0.1348317795
+## FrancePop   -2.858849e-04  0.0002416171
+confint(modWine2)
+##                     2.5 %       97.5 %
+## (Intercept) -7.1524497573 -0.150690903
+## WinterRain   0.0001670449  0.002166393
+## AGST         0.4190113907  0.813771726
+## HarvestRain -0.0055353098 -0.002185890
+## Age          0.0089852800  0.038710748
+confint(modWine3)
+##                    2.5 %      97.5 %
+## (Intercept)  4.746010626 7.220074676
+## Age          0.007702664 0.064409106
+## WinterRain  -0.001030725 0.002593278
+
+#У modWine3 ДІ з 95% для β0 дорівнює (4,7460, 7,2201), для β1 дорівнює (0,0077, 0,0644), 
+#а для β2 дорівнює (−0,0010, 0,0026). Тому ми можемо із 95% впевненістю сказати, 
+#що коефіцієнт WinterRain несуттєвий (0 знаходиться всередині ДІ). 
+#Але, перевіряючи ДІ β2 в modWine2, ми можемо побачити, що це важливо для моделі! 
+#Як це можливо? Відповідь полягає в тому, що наявність додаткових предикторів 
+#впливає на оцінку коефіцієнта. Отже, точне твердження, яке слід зробити:
+
+#У моделі Price ~ Age + WinterRain, з α = 0,05, коефіцієнт WinterRain є незначним.
+
+#Зауважте, що це не означає, що коефіцієнт завжди буде несуттєвим: у 
+#Price ~ Age + AGST + HarvestRain + WinterRain він є значущий.
+
+summary(mod2)
+m_3 <- summary(mod2)
+#>Call:
+#>  lm(formula = Price ~ Age + WinterRain, data = wine)
+#>
+#>Residuals:
+#>  Min       1Q   Median       3Q      Max 
+#>-0.88964 -0.51421 -0.00066  0.43103  1.06897 
+#>
+#>Coefficients:
+#>              Estimate    Std.Error t value Pr(>|t|)    
+#>(Intercept)   5.9830427  0.5993667   9.982 5.09e-10 ***
+#>  Age         0.0360559  0.0137377   2.625   0.0149 *  
+#>  WinterRain  0.0007813  0.0008780   0.890   0.3824    
+#>---
+#>  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+#>
+#>Residual standard error: 0.5769 on 24 degrees of freedom
+#>Multiple R-squared:  0.2371,	Adjusted R-squared:  0.1736 
+#>F-statistic:  3.73 on 2 and 24 DF,  p-value: 0.03884
+
+confint(modWine3)
+#>                   2.5 %      97.5 %
+#> (Intercept) 4.746010626 7.220074676
+#> Age          0.007702664 0.064409106
+#> WinterRain  -0.001030725 0.002593278
+
+
+#-----в ручну--------
+# обчислити надійні стандартні помилки
+# rob_se <- diag(vcovHC(modWine3, type = "HC1"))^0.5 # гетероскедастичний
+# rob_se <- diag(vcovHC(modWine3))^0.5
+
+# обчислити надійні 95% довірчі інтервали
+# rbind("lower" = coef(modWine3) - qnorm(0.975) * rob_se,
+#       "upper" = coef(modWine3) + qnorm(0.975) * rob_se)
+#>       (Intercept)       Age   WinterRain
+#> lower    4.766868 0.01357906 -0.001054504
+#> upper    7.199218 0.05853271  0.002617057
+
+
+
+#-------------t_k--------------------------
+
+alpha <- 0.05
+n <- length(DF$teaching.score)
+p <- 2
+t_k <- qt(p = 1 - alpha / 2, df = n - p - 1)
+t_k
+#[1] 2.063899
+
+qt(p = alpha / 2, df = n - p - 1, lower.tail = FALSE)
+
+#----------------------------------------
+
+#-----------H_0 для Age---------------------------
+
+# Побудуйте стандартну нормаль  опираючись на [-7,7]
+t <- seq(-7, 7, 0.01)
+
+par(mfrow = c(1, 1))
+
+plot(x = t, 
+     y = dnorm(t, 0, 1), 
+     type = "l", 
+     col = "steelblue", 
+     lwd = 2, 
+     yaxs = "i", 
+     axes = F, 
+     ylab = "", 
+     main = expression("Calculating the p-value of a Two-sided Test when" ~ t^act ~ "=6.27"), 
+     cex.lab = 0.7,
+     cex.main = 1)
+
+# tact для Age тобто coefficients[2,3]
+tact <- m_3$coefficients[2,3]
+
+axis(1, at = c(0, -t_k, t_k, -tact, tact, -7, 7), cex.axis = 0.7)
+
+# Затінити критичні області за допомогою polygon():
+
+# критична область в лівому хвості
+polygon(x = c(-7, seq(-7, -t_k, 0.01), -t_k),
+        y = c(0, dnorm(seq(-7, -t_k, 0.01)), 0), 
+        col = 'orange')
+
+# критична область в правому хвості
+
+polygon(x = c(t_k, seq(t_k, 7, 0.01), 7),
+        y = c(0, dnorm(seq(t_k, 7, 0.01)), 0), 
+        col = 'orange')
+
+# Додайте стрілки та тексти, що вказують на критичні області та p-value
+arrows(-3.5, 0.2, -2.5, 0.02, length = 0.1)
+arrows(3.5, 0.2, 2.5, 0.02, length = 0.1)
+
+arrows(5, 0.16, tact, 0, length = 0.1)
+arrows(-5, 0.16, -tact, 0, length = 0.1)
+
+text(-3.5, 0.22, 
+     labels = expression("0.025"~"="~over(alpha, 2)),
+     cex = 0.7)
+text(3.5, 0.22, 
+     labels = expression("0.025"~"="~over(alpha, 2)),
+     cex = 0.7)
+
+text(-5, 0.18, 
+     labels = expression(paste("-|",t[act],"|")), 
+     cex = 0.7)
+text(5, 0.18, 
+     labels = expression(paste("|",t[act],"|")), 
+     cex = 0.7)
+
+# Додайте галочки, що вказують критичні значення на рівні 0,05, t^act і -t^act 
+rug(c(-t_k, t_k), ticksize  = 0.8, lwd = 2, col = "darkred")
+rug(c(-tact, tact), ticksize  = -0.0451, lwd = 2, col = "darkgreen")
+
+text(-5, 0.3, 
+     labels = expression(paste(H[1])), 
+     cex = 2)
+text(5, 0.3, 
+     labels = expression(paste(H[1])), 
+     cex = 2)
+
+text(0, 0.3, 
+     labels = expression(paste(H[0])), 
+     cex = 2)
+
+
+#-----------H_0 для WinterRain---------------------------
+
+# Побудуйте стандартну нормаль  опираючись на [-7,7]
+t <- seq(-7, 7, 0.01)
+
+par(mfrow = c(1, 1))
+
+plot(x = t, 
+     y = dnorm(t, 0, 1), 
+     type = "l", 
+     col = "steelblue", 
+     lwd = 2, 
+     yaxs = "i", 
+     axes = F, 
+     ylab = "", 
+     main = expression("Calculating the p-value of a Two-sided Test when" ~ t^act ~ "=6.27"), 
+     cex.lab = 0.7,
+     cex.main = 1)
+
+# tact для WinterRain тобто coefficients[3,3]
+tact <- m_3$coefficients[3,3]
+
+axis(1, at = c(0, -t_k, t_k, -tact, tact, -7, 7), cex.axis = 0.7)
+
+# Затінити критичні області за допомогою polygon():
+
+# критична область в лівому хвості
+polygon(x = c(-7, seq(-7, -t_k, 0.01), -t_k),
+        y = c(0, dnorm(seq(-7, -t_k, 0.01)), 0), 
+        col = 'orange')
+
+# критична область в правому хвості
+
+polygon(x = c(t_k, seq(t_k, 7, 0.01), 7),
+        y = c(0, dnorm(seq(t_k, 7, 0.01)), 0), 
+        col = 'orange')
+
+# Додайте стрілки та тексти, що вказують на критичні області та p-value
+arrows(-3.5, 0.2, -2.5, 0.02, length = 0.1)
+arrows(3.5, 0.2, 2.5, 0.02, length = 0.1)
+
+arrows(5, 0.16, tact, 0, length = 0.1)
+arrows(-5, 0.16, -tact, 0, length = 0.1)
+
+text(-3.5, 0.22, 
+     labels = expression("0.025"~"="~over(alpha, 2)),
+     cex = 0.7)
+text(3.5, 0.22, 
+     labels = expression("0.025"~"="~over(alpha, 2)),
+     cex = 0.7)
+
+text(-5, 0.18, 
+     labels = expression(paste("-|",t[act],"|")), 
+     cex = 0.7)
+text(5, 0.18, 
+     labels = expression(paste("|",t[act],"|")), 
+     cex = 0.7)
+
+# Додайте галочки, що вказують критичні значення на рівні 0,05, t^act і -t^act 
+rug(c(-t_k, t_k), ticksize  = 0.8, lwd = 2, col = "darkred")
+rug(c(-tact, tact), ticksize  = -0.0451, lwd = 2, col = "darkgreen")
+
+text(-5, 0.3, 
+     labels = expression(paste(H[1])), 
+     cex = 2)
+text(5, 0.3, 
+     labels = expression(paste(H[1])), 
+     cex = 2)
+
+text(0, 0.3, 
+     labels = expression(paste(H[0])), 
+     cex = 2)
+
+
+#==================================================
+
+# За замовчуванням scale() центрує (віднімає середнє значення) і масштабує 
+#(ділить на стандартне відхилення) стовпці матриці
+
+wineCen <- data.frame(scale(wine, center = TRUE, scale = FALSE))
+
+# Regression with centered response and predictors
+modWine3Cen <- lm(Price ~ Age + WinterRain, data = wineCen)
+
+# Summary
+summary(modWine3Cen)
+## 
+## Call:
+## lm(formula = Price ~ Age + WinterRain, data = wineCen)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.88964 -0.51421 -0.00066  0.43103  1.06897 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)  
+## (Intercept) -2.284e-16  1.110e-01   0.000   1.0000  
+## Age          3.606e-02  1.374e-02   2.625   0.0149 *
+## WinterRain   7.813e-04  8.780e-04   0.890   0.3824  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.5769 on 24 degrees of freedom
+## Multiple R-squared:  0.2371, Adjusted R-squared:  0.1736 
+## F-statistic:  3.73 on 2 and 24 DF,  p-value: 0.03884
+
+
+# Лінійна модель за ціною від WinterRain, HarvestRain, і AGST
+
+
+modWine4 <- lm(Price ~ WinterRain + HarvestRain + AGST, data = wine)
+summary(modWine4)
+## 
+## Call:
+## lm(formula = Price ~ WinterRain + HarvestRain + AGST, data = wine)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.62816 -0.17923  0.02274  0.21990  0.62859 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -4.9506001  1.9694011  -2.514  0.01940 *  
+## WinterRain   0.0012820  0.0005765   2.224  0.03628 *  
+## HarvestRain -0.0036242  0.0009646  -3.757  0.00103 ** 
+## AGST         0.7123192  0.1087676   6.549 1.11e-06 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.3436 on 23 degrees of freedom
+## Multiple R-squared:  0.7407, Adjusted R-squared:  0.7069 
+## F-statistic:  21.9 on 3 and 23 DF,  p-value: 6.246e-07
+
+
+# =====Дані, для яких ми хочемо передбачити=============
+
+# Важливо! Ви повинні назвати стовпець іменем предиктора!
+weather <- data.frame(WinterRain = 500, HarvestRain = 123, AGST = 18)
+weatherBad <- data.frame(500, 123, 18)
+
+# Прогнозування середнього
+
+# Прогнозування середнього значення на 95% - за замовчуванням
+predict(modWine4, newdata = weather)
+##        1 
+## 8.066342
+predict(modWine4, newdata = weatherBad) # Помилка
+## Помилка в eval(predvars, data, env): об'єкт 'WinterRain' не можу знайти
+
+# Прогнозування середнього значення (незалежної змінної) з 95% довірчим інтервалом (за замовчуванням)
+# CI: (lwr, upr) тобто (min, max)
+predict(modWine4, newdata = weather, interval = "confidence")
+##        fit      lwr      upr
+## 1 8.066342 7.714178 8.418507
+predict(modWine4, newdata = weather, interval = "confidence", level = 0.95)
+##        fit      lwr      upr
+## 1 8.066342 7.714178 8.418507
+
+# Інші рівні
+predict(modWine4, newdata = weather, interval = "confidence", level = 0.90)
+##        fit      lwr      upr
+## 1 8.066342 7.774576 8.358108
+predict(modWine4, newdata = weather, interval = "confidence", level = 0.99)
+##        fit      lwr      upr
+## 1 8.066342 7.588427 8.544258
+
+# Прогнозування середнього (регресійного) значення на 95% для всіх y^ (тобто довірчий інтервал y^)
+predict(modWine4, interval = "confidence")
+
+# Прогнозування незалежної змінної
+
+# Прогнозування середнього значення на рівні 95% - за замовчуванням
+predict(modWine4, newdata = weather)
+##        1 
+## 8.066342
+
+# Прогнозування прогнозу з 95% довірчим інтервалом
+# CI: (lwr, upr)
+predict(modWine4, newdata = weather, interval = "prediction")
+##        fit      lwr      upr
+## 1 8.066342 7.273176 8.859508
+predict(modWine4, newdata = weather, interval = "prediction", level = 0.95)
+##        fit      lwr      upr
+## 1 8.066342 7.273176 8.859508
+
+# Інші рівні
+predict(modWine4, newdata = weather, interval = "prediction", level = 0.90)
+##        fit      lwr      upr
+## 1 8.066342 7.409208 8.723476
+predict(modWine4, newdata = weather, interval = "prediction", level = 0.99)
+##        fit      lwr      upr
+## 1 8.066342 6.989951 9.142733
+
+# Прогнози для кількох значень
+weather2 <- data.frame(WinterRain = c(500, 200), HarvestRain = c(123, 200),
+                       AGST = c(17, 18))
+predict(modWine4, newdata = weather2, interval = "prediction")
+##        fit      lwr      upr
+## 1 7.354023 6.613835 8.094211
+## 2 7.402691 6.533945 8.271437
+
+
+modWine0 <- lm(Price ~ AGST, data = wine)
+summary(modWine0)
+m_0 <- predict(modWine0, interval = "confidence")
+
+plot(wine$AGST, wine$Price, xlab="AGST", ylab = "Price")
+
+predict_wine <- data.frame(predict(modWine0, interval = "confidence"))
+wine$fit <- predict_wine$fit
+wine$lwr <- predict_wine$lwr
+wine$upr <- predict_wine$upr

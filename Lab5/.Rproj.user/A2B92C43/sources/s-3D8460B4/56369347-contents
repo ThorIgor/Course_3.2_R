@@ -1,0 +1,135 @@
+data <- read.csv("lab2/canada_cpi.csv")
+X1 <- data$Fresh.fruit.and.vegetables
+X2 <- data$Alcoholic.beverages.and.tobacco.products
+X3 <- data$Recreation..education.and.reading
+X4 <- data$Household.operations..furnishings.and.equipment
+X5 <- data$Clothing.and.footwear
+Y <- data$Health.and.personal.care
+
+simpleAnova <- function(object, ...) {
+  tab <- anova(object, ...)
+  p <- nrow(tab) - 1
+  predictorsRow <- colSums(tab[1:p, 1:2])
+  predictorsRow <- c(predictorsRow, predictorsRow[2] / predictorsRow[1])
+  Fval <- predictorsRow[3] / tab[p + 1, 3]
+  pval <- pf(Fval, df1 = p, df2 = tab$Df[p + 1], lower.tail = FALSE)
+  predictorsRow <- c(predictorsRow, Fval, pval)
+  tab <- rbind(predictorsRow, tab[p + 1, ])
+  row.names(tab)[1] <- "Predictors"
+  return(tab)
+}
+
+
+
+# ===========(A)===========
+mod_1 = lm(Y ~ X1+X2+X3+X4+X5)
+simpleAnova(mod_1)
+# a. SSR РґР»СЏ p Р·РјС–РЅРЅРёС… = 16752.4
+# b. SSE РґР»СЏ n вЂ“ p вЂ“ 1 СЃС‚РµРїРµРЅС–РІ РІС–Р»СЊРЅРѕСЃС‚С– = 78.4 
+# c. F-СЃС‚Р°С‚РёСЃС‚РёРєР° = 1368.3 
+
+
+
+# ===========(B)===========
+anova_five <- function(y, x1, x2, x3, x4, x5) {
+  mod = lm(y ~ x1+x2+x3+x4+x5)
+  return(anova(mod))
+}
+anova_five(Y, X1, X2, X3, X4, X5)
+# a. SSR1 = 14713.5
+#    SSR2 = 1046.3
+#    SSR3 = 942.1
+#    SSR4 = 42.6
+#    SSR5 = 7.9 
+# b. Р’РєР°Р·Р°С‚Рё F-value РґР»СЏ 5-С‚Рё РїР°СЂР°РјРµС‚СЂС–РІ:
+#    [6008.9580, 427.3190, 384.7450, 17.3907, 3.2264]
+# c. Р’РєР°Р·Р°С‚Рё С‚С– СЏРєС– РЅРµ РїСЂРѕС…РѕРґСЏС‚СЊ Р·Р° F-СЃС‚Р°С‚РёСЃС‚РёРєРѕСЋ;
+#    Р—РјС–РЅРЅР° X5 РЅРµ С” Р·РЅР°С‡СѓС‰РѕСЋ РЅР° СЂС–РІРЅС– alpha=0.05
+
+
+
+# ===========(C)===========
+n = 38
+modAll <- lm(formula = Health.and.personal.care ~ ., data=data)
+modZero <- lm(formula = Health.and.personal.care ~ 1, data=data)
+MASS::stepAIC(modAll, direction = "backward", k = log(n))
+# a. Р¤С–РЅР°Р»СЊРЅР° РјРѕРґРµР»СЊ (BIC=-17.61):
+#    Y ~ Food + Shelter + Household.operations..furnishings.and.equipment + 
+#        Clothing.and.footwear + Transportation + Recreation..education.and.reading + 
+#        Alcoholic.beverages.and.tobacco.products + All.items.excluding.food.and.energy + 
+#        All.items.excluding.energy + Fresh.fruit.and.vegetables + 
+#        Goods + Services
+#    Coefficients:
+#     (Intercept)                             Food  
+#      18.69783                                -0.92593  
+#     Shelter                                 Household.operations..furnishings.and.equipment  
+#      -2.05971                                -0.64675  
+#     Clothing.and.footwear                   Transportation  
+#      -0.61878                                -1.50488  
+#     Recreation..education.and.reading       Alcoholic.beverages.and.tobacco.products  
+#      -0.72429                                -0.43386  
+#     All.items.excluding.food.and.energy     All.items.excluding.energy  
+#      2.78211                                 -4.03568  
+#     Fresh.fruit.and.vegetables              Goods  
+#      0.07341                                 4.04097  
+#     Services  
+#      4.86437  
+MASS::stepAIC(modZero, direction="forward", scope=list(lower=modZero, upper=modAll), k=log(n)) 
+# b. Р¤С–РЅР°Р»СЊРЅР° РјРѕРґРµР»СЊ (BIC=17.45):
+#    Y ~ All.items.excluding.food.and.energy
+MASS::stepAIC(modAll, direction="both", trace=0, scope=list(lower=modZero, upper=modAll), k=log(n))
+# c. Р¤С–РЅР°Р»СЊРЅР° РјРѕРґРµР»СЊ:
+#    Y ~ Food + Shelter + Household.operations..furnishings.and.equipment + 
+#        Clothing.and.footwear + Transportation + Recreation..education.and.reading + 
+#        Alcoholic.beverages.and.tobacco.products + All.items.excluding.food.and.energy + 
+#        All.items.excluding.energy + Fresh.fruit.and.vegetables + 
+#        Goods + Services
+#    Coefficients:
+#     (Intercept)                             Food  
+#      18.69783                                -0.92593  
+#     Shelter                                 Household.operations..furnishings.and.equipment  
+#      -2.05971                                -0.64675  
+#     Clothing.and.footwear                   Transportation  
+#      -0.61878                                -1.50488  
+#     Recreation..education.and.reading       Alcoholic.beverages.and.tobacco.products  
+#      -0.72429                                -0.43386  
+#     All.items.excluding.food.and.energy     All.items.excluding.energy  
+#      2.78211                                 -4.03568  
+#     Fresh.fruit.and.vegetables              Goods  
+#      0.07341                                 4.04097  
+#     Services  
+#      4.86437  
+MASS::stepAIC(modAll, trace = 0, k = 2)
+# d. Р¤С–РЅР°Р»СЊРЅР° РјРѕРґРµР»СЊ:
+#    Coefficients:
+#     (Intercept)                             Food  
+#      18.69783                                -0.92593  
+#     Shelter                                 Household.operations..furnishings.and.equipment  
+#      -2.05971                                -0.64675  
+#     Clothing.and.footwear                   Transportation  
+#      -0.61878                                -1.50488  
+#     Recreation..education.and.reading       Alcoholic.beverages.and.tobacco.products  
+#      -0.72429                                -0.43386  
+#     All.items.excluding.food.and.energy     All.items.excluding.energy  
+#      2.78211                                 -4.03568  
+#     Fresh.fruit.and.vegetables              Goods  
+#      0.07341                                 4.04097  
+#     Services  
+#      4.86437  
+MASS::stepAIC(modAll, trace = 0, k = log(n))
+# e. Р¤С–РЅР°Р»СЊРЅР° РјРѕРґРµР»СЊ:
+#    Coefficients:
+#     (Intercept)                             Food  
+#      18.69783                                -0.92593  
+#     Shelter                                 Household.operations..furnishings.and.equipment  
+#      -2.05971                                -0.64675  
+#     Clothing.and.footwear                   Transportation  
+#      -0.61878                                -1.50488  
+#     Recreation..education.and.reading       Alcoholic.beverages.and.tobacco.products  
+#      -0.72429                                -0.43386  
+#     All.items.excluding.food.and.energy     All.items.excluding.energy  
+#      2.78211                                 -4.03568  
+#     Fresh.fruit.and.vegetables              Goods  
+#      0.07341                                 4.04097  
+#     Services  
+#      4.86437  
